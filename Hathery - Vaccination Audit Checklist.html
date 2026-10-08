@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaccination Audit Checklist</title>
+<style>
+:root{--bg:#f3f6f4;--card:#fff;--ink:#1d2b26;--mute:#5d6e67;--line:#d5dfd9;--brand:#1f6f54;--head:#e4efe9;--yes:#1f6f54;--no:#b3392f}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:960px;margin:0 auto;padding:16px}
+h1{font-size:1.5rem;margin:8px 0 16px}
+section{background:var(--card);border:1px solid var(--line);border-radius:8px;margin-bottom:18px;overflow:hidden}
+section>h2{margin:0;padding:10px 14px;background:var(--head);font-size:1rem;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+section>h2 span{font-weight:400;color:var(--mute);font-size:.9rem}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.85rem}
+input[type=text],input[type=date],input[type=number]{padding:8px;border:1px solid var(--line);border-radius:6px;font:inherit;width:100%}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:640px}
+th,td{padding:7px 10px;border-top:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:.8rem;color:var(--mute);background:#fafcfb}
+td.c,th.c{text-align:center;width:56px}
+td.m{text-align:center;width:70px;color:var(--mute)}
+td input[type=checkbox]{width:20px;height:20px;cursor:pointer}
+td.y input{accent-color:var(--yes)}td.n input{accent-color:var(--no)}
+td input[type=text]{min-width:150px}
+.up{padding:14px;display:flex;flex-direction:column;gap:10px}
+.row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center}
+.row img{max-height:60px;border-radius:4px;display:block;margin-top:4px}
+button{font:inherit;border:0;border-radius:6px;padding:9px 14px;cursor:pointer}
+.btn{background:var(--brand);color:#fff;font-weight:600}
+.btn.sec{background:var(--head);color:var(--ink);align-self:flex-start}
+.btn.x{background:#f3dcd9;color:var(--no);padding:8px 11px}
+.btn:disabled{opacity:.6;cursor:wait}
+.score{position:sticky;bottom:0;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;box-shadow:0 -2px 10px rgba(0,0,0,.08)}
+.score b{font-size:1.1rem}.score .sp{flex:1}
+#msg{padding:10px 14px;border-radius:6px;margin-bottom:12px;display:none}
+#msg.ok{display:block;background:#dcefe5;color:#14513c}
+#msg.err{display:block;background:#f6dedb;color:#8a2a21}
+@media(max-width:600px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>💉Vaccination Audit Checklist</h1>
+<div id="msg"></div>
+<form id="f" onsubmit="return false">
+
+<section><h2>Audit information</h2>
+<div class="grid">
+<label class="f">Auditor name<input type="text" id="auditor"></label>
+<label class="f">Audit date<input type="date" id="auditDate"></label>
+<label class="f">Farm / location<input type="text" id="farm"></label>
+</div></section>
+
+<section><h2>Spray cabinet information</h2>
+<div class="grid">
+<label class="f">Type of spray cabinet<input type="text" id="sc_type"></label>
+<label class="f">Operating pressure<input type="text" id="sc_pressure"></label>
+<label class="f">Droplet size<input type="text" id="sc_droplet"></label>
+<label class="f">Nozzle type<input type="text" id="sc_nozzle"></label>
+<label class="f">Volume per nozzle<input type="text" id="sc_volume"></label>
+</div></section>
+
+<div id="sections"></div>
+
+<section><h2>Upload attachment &amp; caption</h2>
+<div class="up">
+<div id="photos"></div>
+<button type="button" class="btn sec" id="addPhoto">+ Add another image</button>
+</div></section>
+
+<div class="score">
+<span>Yes: <b id="sy">0</b></span><span>No: <b id="sn">0</b></span>
+<span>Score: <b id="sp">0.00%</b> (of <span id="st">96</span>)</span>
+<span class="sp"></span>
+<button type="button" class="btn" id="submit">Submit</button>
+</div>
+</form>
+</div>
+
+<script>
+// ====== CONFIG: paste your deployed Apps Script Web App URL here ======
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwS_h7441o_4LpuC9E1BUkSwVqm9as6f_kkpEvbgCwrmPwLklRqzfHRWYhZh7Uev7a1mA/exec";
+
+const SECTIONS = [
+ {name:"Vaccine handling and preparation", items:[
+  ["Vaccine refrigerator is clean and well maintained",2],
+  ["Vaccine refrigerator is exclusive for vaccines only",3],
+  ["Vaccine refrigerator temperature is at 2 to 8°C",3],
+  ["Daily vaccine refrigerator temperature is recorded and updated",3],
+  ["Vaccine expiration dates and inventory records are updated",3],
+  ["Cold chain is maintained during vaccine transport",3],
+  ["Vaccines are protected from direct sunlight during transport",3],
+  ["Vaccine preparation area is clean and protected from direct sunlight",3],
+  ["Hand washed and dried before prepare the vaccine solution",2],
+  ["Use of PPE during vaccine preparation",3],
+  ["Thawing bath temperature is at 27-29°C",2],
+  ["Distilled water is used for thawing live frozen vaccine in ampoules",2],
+  ["Water for thawing bath is regularly replaced",1],
+  ["Addition of antibiotic to diluent before anything else",1],
+  ["Injection of vaccine 30 minutes after the addition of blue dye",1],
+  ["Addition of live freeze-dried vaccine (vial) before live frozen vaccine (ampoule)",1],
+  ["Rinsing the vials and ampoules to recover the 15% remaining vaccine",1],
+  ["Use of 18G (single use) needle for blue dye aspiration",1],
+  ["Sticker with preparation time is present on the diluent bag after reconstitution",1],
+  ["Clean plastic container is used for live vaccine reconstitution",2],
+  ["Clean plastic stirrer is used for vaccine mixing",2],
+  ["For killed vaccine, vaccine bottle/s are gently shaken before vaccination",3],
+  ["Vaccine emulsion is not broken and is uniform after shaking",3],
+  ["Empty vaccine vials/ ampoules/ bottles are properly deactivated prior to disposal",3],
+  ["Vaccine process control record is accomplished",1]]},
+ {name:"Vaccination Process/Administration (SQ Vaccination)", items:[
+  ["All SQ vaccination paraphernalia (per vaccinator) are placed in a clean container",2],
+  ["Separate containers are provided for needles, spare parts and cleaning materials",2],
+  ["SQ injector is clean and well maintained prior to use",3],
+  ["SQ Injector is calibrated before operations",3],
+  ["Metronome is functional during vaccination",2],
+  ["Vaccinator follows the pace of the metronome",3],
+  ["Right administration route, injection site and dose of the vaccine",3],
+  ["Needles are replaced every 5,000 birds",3],
+  ["Blunt and bent needles are replaced",3],
+  ["Reconstituted vaccines are consumed within 30-45 mins",2],
+  ["SQ infusion sets are replaced after breaktime",2]]},
+ {name:"Vaccination Process/Administration (Spray Vaccination)", items:[
+  ["Spray cabinet is clean and well maintained prior to use",3],
+  ["Spray cabinet is calibrated before operations",3],
+  ["Spray pattern is homogenous",3],
+  ["No backflow of vaccine",3],
+  ["Environmental parameters are okay during spray vaccination",2],
+  ["Vaccine process control record is accomplished",1]]}
+];
+
+const $ = id => document.getElementById(id);
+const items = []; // flat list
+let n = 0;
+const host = $("sections");
+SECTIONS.forEach((s,si)=>{
+  const total = s.items.reduce((a,b)=>a+b[1],0);
+  const sec = document.createElement("section");
+  sec.innerHTML = `<h2>${s.name}<span>Max ${total} · Section score <b id="ss${si}">0.00%</b></span></h2>
+  <div class="tbl"><table><thead><tr><th>Audit item</th><th class="c">Multiplier</th><th class="c">Yes</th><th class="c">No</th><th>Remarks</th></tr></thead><tbody></tbody></table></div>`;
+  const tb = sec.querySelector("tbody");
+  s.items.forEach(([t,m])=>{
+    const i = n++;
+    items.push({i,t,m,si,section:s.name});
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${t}</td><td class="m">${m}</td>
+     <td class="y c"><input type="checkbox" data-i="${i}" data-v="Yes" aria-label="Yes"></td>
+     <td class="n c"><input type="checkbox" data-i="${i}" data-v="No" aria-label="No"></td>
+     <td><input type="text" id="rm${i}"></td>`;
+    tb.appendChild(tr);
+  });
+  host.appendChild(sec);
+});
+const GRAND = items.reduce((a,b)=>a+b.m,0);
+$("st").textContent = GRAND;
+
+// Yes/No checkboxes behave as one choice (can also be unticked)
+host.addEventListener("change",e=>{
+  const c = e.target;
+  if(c.dataset.i===undefined) return;
+  if(c.checked){
+    host.querySelectorAll(`input[data-i="${c.dataset.i}"]`).forEach(o=>{if(o!==c)o.checked=false});
+  }
+  recalc();
+});
+const ans = i => {
+  const c = host.querySelector(`input[data-i="${i}"]:checked`);
+  return c ? c.dataset.v : "";
+};
+function recalc(){
+  let y=0,no=0; const sy=SECTIONS.map(()=>0), st=SECTIONS.map(()=>0);
+  items.forEach(it=>{
+    st[it.si]+=it.m;
+    const a=ans(it.i);
+    if(a==="Yes"){y+=it.m;sy[it.si]+=it.m}
+    if(a==="No") no+=it.m;
+  });
+  $("sy").textContent=y; $("sn").textContent=no;
+  $("sp").textContent=(y/GRAND*100).toFixed(2)+"%";
+  SECTIONS.forEach((_,i)=>$("ss"+i).textContent=(sy[i]/st[i]*100).toFixed(2)+"%");
+  return {y,no,pct:(y/GRAND*100).toFixed(2)+"%"};
+}
+
+// ===== Photos =====
+const photos = $("photos");
+function addPhoto(){
+  const d=document.createElement("div"); d.className="row";
+  d.innerHTML=`<div><input type="file" accept="image/*"><img hidden alt=""></div>
+   <input type="text" placeholder="Caption for this image"><button type="button" class="btn x" title="Remove">✕</button>`;
+  const file=d.querySelector("input[type=file]"), img=d.querySelector("img");
+  file.onchange=()=>{ if(file.files[0]){img.src=URL.createObjectURL(file.files[0]);img.hidden=false}else img.hidden=true };
+  d.querySelector(".x").onclick=()=>{ if(photos.children.length>1) d.remove(); else {file.value="";img.hidden=true;d.querySelector("input[type=text]").value=""} };
+  photos.appendChild(d);
+}
+$("addPhoto").onclick=addPhoto; addPhoto();
+
+// Resize to max 1600px JPEG to keep uploads small, return base64 (no prefix)
+function toBase64(file){
+  return new Promise((res,rej)=>{
+    const url=URL.createObjectURL(file), im=new Image();
+    im.onload=()=>{
+      const max=1600, r=Math.min(1,max/Math.max(im.width,im.height));
+      const c=document.createElement("canvas"); c.width=Math.round(im.width*r); c.height=Math.round(im.height*r);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL("image/jpeg",0.8).split(",")[1]);
+    };
+    im.onerror=()=>rej(new Error("Cannot read image: "+file.name));
+    im.src=url;
+  });
+}
+
+const msg=(t,c)=>{const m=$("msg");m.textContent=t;m.className=c;window.scrollTo({top:0,behavior:"smooth"})};
+
+$("submit").onclick=async()=>{
+  if(SCRIPT_URL.startsWith("PASTE")) return msg("Set SCRIPT_URL in the HTML first (see setup steps).","err");
+  if(!$("auditor").value.trim()) return msg("Please enter the auditor name.","err");
+  const btn=$("submit"); btn.disabled=true; btn.textContent="Uploading…";
+  try{
+    const imgs=[];
+    for(const row of photos.children){
+      const f=row.querySelector("input[type=file]").files[0];
+      if(!f) continue;
+      imgs.push({name:f.name.replace(/\.[^.]+$/,"")+".jpg", data:await toBase64(f), caption:row.querySelector("input[type=text]").value.trim()});
+    }
+    const t=recalc();
+    const payload={
+      auditor:$("auditor").value.trim(), auditDate:$("auditDate").value, farm:$("farm").value.trim(),
+      spray:[$("sc_type").value,$("sc_pressure").value,$("sc_droplet").value,$("sc_nozzle").value,$("sc_volume").value],
+      itemLabels:items.map((it,k)=>`${k+1}. ${it.t}`),
+      answers:items.map(it=>ans(it.i)),
+      remarks:items.map(it=>{const v=$("rm"+it.i).value.trim();return v?`#${it.i+1}: ${v}`:""}).filter(Boolean).join(" | "),
+      totalYes:t.y, totalNo:t.no, percent:t.pct, images:imgs
+    };
+    const r=await fetch(SCRIPT_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    const j=await r.json();
+    if(!j.ok) throw new Error(j.error||"Unknown error");
+    msg("Audit saved to Google Sheet"+(imgs.length?` with ${imgs.length} image(s).`:"."),"ok");
+    $("f").reset(); photos.innerHTML=""; addPhoto(); recalc();
+  }catch(e){ msg("Submit failed: "+e.message,"err") }
+  btn.disabled=false; btn.textContent="Submit audit";
+};
+$("auditDate").valueAsDate=new Date();
+recalc();
+</script>
+</body>
+</html>
